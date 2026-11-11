@@ -1,0 +1,247 @@
+<!doctype html>
+<html lang="de">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#0f172a">
+  <title>Vokabelix – Vokabeltrainer</title>
+  <style>
+    *{box-sizing:border-box}
+    body{margin:0;min-height:100vh;background:#0f172a;color:#e2e8f0;font:16px system-ui,sans-serif}
+    header,footer{text-align:center;padding:16px;border-bottom:1px solid #334155}
+    footer{border:0;border-top:1px solid #334155;color:#94a3b8;font-size:12px}
+    main{max-width:620px;margin:32px auto;padding:0 16px}
+    section{background:#1e293b;border:1px solid #334155;border-radius:22px;padding:24px;box-shadow:0 18px 50px #02061766}
+    h1,h2{text-align:center;color:#fff}
+    h1{margin-top:4px}
+    p{color:#94a3b8}
+    label{display:block;color:#94a3b8;font-size:12px;margin:16px 0 6px}
+    input,select{width:100%;padding:13px;border:1px solid #475569;border-radius:12px;background:#0f172a;color:#fff;font:inherit}
+    button{padding:13px 16px;border:0;border-radius:12px;font:inherit;font-weight:700;cursor:pointer}
+    button:focus-visible,input:focus-visible,select:focus-visible{outline:2px solid #a5b4fc;outline-offset:2px}
+    .primary{background:#4f46e5;color:white}
+    .secondary{background:#334155;color:white}
+    .danger{background:#9f1239;color:white}
+    .good{background:#047857;color:white}
+    .actions{display:grid;gap:10px;margin:18px 0}
+    .row{display:flex;gap:8px;margin:8px 0}
+    .row>*{flex:1;min-width:0}
+    .hidden{display:none!important}
+    .muted{color:#94a3b8;font-size:13px}
+    .question{text-align:center;padding:28px 0}
+    .question h2{font-size:clamp(25px,7vw,38px);overflow-wrap:anywhere}
+    .progress{height:8px;background:#0f172a;border-radius:8px;overflow:hidden}
+    .progress div{height:100%;background:#818cf8;width:0}
+    .feedback{padding:14px;margin-top:12px;border-radius:12px;background:#0f172a}
+    .word{display:flex;justify-content:space-between;gap:10px;padding:9px 0;border-bottom:1px solid #334155;font-size:14px}
+    .word button{padding:5px 10px;background:#7f1d1d;color:white;font-size:12px}
+    .flashcard{width:100%;min-height:210px;margin:16px 0;background:#0f172a;color:white;border:1px solid #475569;font-size:clamp(25px,7vw,38px)}
+    @media(max-width:480px){main{margin:16px auto}section{padding:18px}.row{flex-wrap:wrap}}
+  </style>
+</head>
+<body>
+  <header><strong>🔥 Vokabelix</strong></header>
+  <main>
+    <section id="home">
+      <h1>Vokabelix</h1>
+      <p style="text-align:center">Deine Sammlung: <strong id="total">0 Vokabeln</strong></p>
+
+      <label for="direction">Abfrage-Richtung</label>
+      <select id="direction">
+        <option value="de-en">Deutsch → Englisch</option>
+        <option value="en-de">Englisch → Deutsch</option>
+        <option value="mixed">Gemischt</option>
+      </select>
+
+      <div class="actions">
+        <button class="primary" id="startQuiz">⌨️ Eingabe-Training</button>
+        <button class="secondary" id="startCards">🎴 Karteikarten</button>
+        <button class="danger hidden" id="repeatWrong">Falsche Vokabeln wiederholen (<span id="wrongTotal">0</span>)</button>
+      </div>
+
+      <hr style="border-color:#334155">
+      <h2>Vokabeln hinzufügen</h2>
+      <div class="row">
+        <input id="english" placeholder="Englisch" aria-label="Englisches Wort">
+        <input id="german" placeholder="Deutsch" aria-label="Deutsches Wort">
+      </div>
+      <button class="primary" id="addWord" style="width:100%">Hinzufügen</button>
+      <p class="muted">Deine Vokabeln werden in diesem Browser gespeichert.</p>
+      <div id="wordList"></div>
+      <button class="secondary" id="clearWords" style="width:100%;margin-top:12px">Alle Vokabeln löschen</button>
+    </section>
+
+    <section id="quiz" class="hidden">
+      <div class="progress"><div id="progressBar"></div></div>
+      <div class="question">
+        <p id="promptLang">Deutsch</p>
+        <h2 id="prompt">…</h2>
+      </div>
+      <form id="answerForm">
+        <input id="answer" autocomplete="off" placeholder="Übersetzung eingeben">
+        <div class="row">
+          <button class="primary" style="flex:2">Antworten</button>
+          <button class="secondary" id="skip" type="button">Später</button>
+        </div>
+      </form>
+      <div id="feedback" class="feedback hidden" aria-live="polite"></div>
+      <button id="next" class="secondary hidden" style="width:100%;margin-top:10px">Nächste Vokabel →</button>
+      <button id="exitQuiz" class="secondary" style="width:100%;margin-top:10px">Zurück zum Menü</button>
+    </section>
+
+    <section id="cards" class="hidden">
+      <div class="progress"><div id="cardProgress"></div></div>
+      <button id="flashcard" class="flashcard">
+        <span id="frontLang">Deutsch</span><br><span id="front">…</span>
+        <small style="display:block;font-size:13px;color:#94a3b8">Tippen zum Umdrehen</small>
+      </button>
+      <div id="back" class="feedback hidden" style="text-align:center;font-size:22px"></div>
+      <div class="row">
+        <button id="cardWrong" class="danger">❌ Noch nicht gewusst</button>
+        <button id="cardRight" class="good">✅ Gewusst</button>
+      </div>
+      <button id="exitCards" class="secondary" style="width:100%;margin-top:10px">Zurück zum Menü</button>
+    </section>
+
+    <section id="summary" class="hidden">
+      <h1>Runde abgeschlossen 🎉</h1>
+      <p id="result" style="text-align:center"></p>
+      <button id="backHome" class="primary" style="width:100%">Zurück zum Menü</button>
+    </section>
+  </main>
+  <footer>Vokabelix · Deine Wörter bleiben auf diesem Gerät.</footer>
+
+  <script>
+    const $ = id => document.getElementById(id);
+    const KEY = 'vokabelix-vocab';
+    let words = readWords(), wrongWords = [], deck = [], index = 0, correct = 0;
+    let mode = 'quiz', direction = 'de-en', cardDirection = 'de-en', answered = false;
+
+    function readWords() {
+      try {
+        const data = JSON.parse(localStorage.getItem(KEY) || '[]');
+        return Array.isArray(data) ? data : [];
+      } catch { return []; }
+    }
+    function save() { localStorage.setItem(KEY, JSON.stringify(words)); render(); }
+    function render() {
+      $('total').textContent = words.length + ' Vokabeln';
+      $('wrongTotal').textContent = wrongWords.length;
+      $('repeatWrong').classList.toggle('hidden', !wrongWords.length);
+      const list = $('wordList');
+      list.replaceChildren();
+      words.forEach((word, i) => {
+        const row = document.createElement('div');
+        row.className = 'word';
+        const text = document.createElement('span');
+        text.textContent = word.en + ' → ' + word.de;
+        const del = document.createElement('button');
+        del.textContent = 'Löschen';
+        del.onclick = () => { words.splice(i, 1); save(); };
+        row.append(text, del);
+        list.append(row);
+      });
+    }
+    function show(id) {
+      ['home','quiz','cards','summary'].forEach(view =>
+        $(view).classList.toggle('hidden', view !== id)
+      );
+    }
+    function pickDirection() {
+      cardDirection = direction === 'mixed'
+        ? (Math.random() < 0.5 ? 'de-en' : 'en-de')
+        : direction;
+    }
+    function start(selectedMode, repeat = false) {
+      if (!words.length) { alert('Füge zuerst Vokabeln hinzu.'); return; }
+      mode = selectedMode;
+      direction = $('direction').value;
+      deck = [...(repeat ? wrongWords : words)].sort(() => Math.random() - 0.5);
+      if (!deck.length) return;
+      index = 0;
+      correct = 0;
+      if (mode === 'quiz') { show('quiz'); loadQuestion(); }
+      else { show('cards'); loadCard(); }
+    }
+    function loadQuestion() {
+      answered = false;
+      pickDirection();
+      const word = deck[index];
+      $('promptLang').textContent = cardDirection === 'de-en' ? 'Deutsch' : 'Englisch';
+      $('prompt').textContent = cardDirection === 'de-en' ? word.de : word.en;
+      $('answer').value = '';
+      $('answer').disabled = false;
+      $('feedback').classList.add('hidden');
+      $('next').classList.add('hidden');
+      $('progressBar').style.width = (index / deck.length * 100) + '%';
+      $('answer').focus();
+    }
+    function loadCard() {
+      pickDirection();
+      const word = deck[index];
+      $('frontLang').textContent = cardDirection === 'de-en' ? 'Deutsch' : 'Englisch';
+      $('front').textContent = cardDirection === 'de-en' ? word.de : word.en;
+      $('back').textContent = cardDirection === 'de-en' ? word.en : word.de;
+      $('back').classList.add('hidden');
+      $('cardProgress').style.width = (index / deck.length * 100) + '%';
+    }
+    function finish() {
+      show('summary');
+      $('result').textContent = correct + ' von ' + deck.length + ' richtig (' +
+        Math.round(correct / deck.length * 100) + '%).';
+      render();
+    }
+    function next() {
+      index++;
+      if (index >= deck.length) finish();
+      else if (mode === 'quiz') loadQuestion();
+      else loadCard();
+    }
+
+    $('addWord').onclick = () => {
+      const en = $('english').value.trim(), de = $('german').value.trim();
+      if (!en || !de) { alert('Bitte beide Wörter eintragen.'); return; }
+      words.push({en, de});
+      $('english').value = '';
+      $('german').value = '';
+      save();
+    };
+    $('startQuiz').onclick = () => start('quiz');
+    $('startCards').onclick = () => start('cards');
+    $('repeatWrong').onclick = () => start('quiz', true);
+    $('answerForm').onsubmit = event => {
+      event.preventDefault();
+      if (answered) return;
+      const response = $('answer').value.trim().toLowerCase();
+      if (!response) return;
+      const word = deck[index];
+      const target = (cardDirection === 'de-en' ? word.en : word.de).toLowerCase();
+      const accepted = target.split(/[,;]/).map(s => s.trim());
+      const isRight = accepted.includes(response);
+      answered = true;
+      $('answer').disabled = true;
+      $('feedback').textContent = isRight ? '✅ Richtig!' : '❌ Lösung: ' + (cardDirection === 'de-en' ? word.en : word.de);
+      $('feedback').classList.remove('hidden');
+      if (isRight) correct++;
+      else if (!wrongWords.some(w => w.en === word.en && w.de === word.de)) wrongWords.push(word);
+      $('next').classList.remove('hidden');
+    };
+    $('next').onclick = next;
+    $('skip').onclick = () => { if (!answered) { deck.push(deck.splice(index, 1)[0]); loadQuestion(); } };
+    $('flashcard').onclick = () => $('back').classList.toggle('hidden');
+    $('cardRight').onclick = () => { correct++; next(); };
+    $('cardWrong').onclick = () => {
+      const word = deck[index];
+      if (!wrongWords.some(w => w.en === word.en && w.de === word.de)) wrongWords.push(word);
+      next();
+    };
+    $('exitQuiz').onclick = $('exitCards').onclick = $('backHome').onclick = () => { show('home'); render(); };
+    $('clearWords').onclick = () => {
+      if (confirm('Alle Vokabeln wirklich löschen?')) {
+        words = []; wrongWords = []; save();
+      }
+    };
+    render();
+  </script>
+</body>
+</html>
